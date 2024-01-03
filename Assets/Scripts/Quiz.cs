@@ -30,15 +30,35 @@ public class Quiz : MonoBehaviour {
     [SerializeField] private Timer timer;
     [SerializeField] private GameObject timerImage;
 
+    [Header("Scoring")]
+    [SerializeField] private TextMeshProUGUI scoreText;
+    private ScoreKeeper scoreKeeper;
+
+    [Header("Progress Bar")]
+    [SerializeField] private Slider progressBar;
+
+    public bool isComplete = false;
+
 
     private void Awake() {
         audio = GetComponent<AudioSource>();
+        scoreKeeper = FindObjectOfType<ScoreKeeper>();
+    }
+
+    private void Start() {
+        progressBar.maxValue = questions.Count;
+        progressBar.value = 0;
     }
 
     private void Update() {
         UpdateImageTimerFillAmount();
 
         if (timer.GetLoadNextQuestion()) {
+            if (progressBar.value == progressBar.maxValue) {
+                isComplete = true;
+                return;
+            }
+
             hasAnsweredEarly = false;
             hasTimerRanOut = false;
             GetNextQuestion();
@@ -63,6 +83,8 @@ public class Quiz : MonoBehaviour {
         hasAnsweredEarly = true;
         ShowCorrectAnswer(index);
         SetButtonStates(false);
+
+        scoreText.text = scoreKeeper.CalculateScore() + "%";
     }
 
     private void ShowCorrectAnswer(int index) {
@@ -73,6 +95,7 @@ public class Quiz : MonoBehaviour {
         if (index == currentQuestion.GetCorrectAnswerIndex()) {
             audio.PlayOneShot(correctSFX, 0.15f);
             questionText.text = "Correct! Your wisdom rivals even mine. Almost.";
+            scoreKeeper.IncrementCorrectAnswers();
         } else {
             audio.PlayOneShot(wrongSFX, 1f);
             questionText.text = "Incorrect! Even my cat would have guessed better. No offense, Whiskers.";
@@ -108,6 +131,9 @@ public class Quiz : MonoBehaviour {
             SetDefaultButtonSprites();
             GetRandomQuestion();
             DisplayQuestionAndAnswers();
+
+            scoreKeeper.IncrementQuestionsSeen();
+            progressBar.value++;
         }
     }
 
